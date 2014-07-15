@@ -17,8 +17,8 @@ parameters.DEFAULT_COUNTER = 20;
 % [control, already_heard, already_heard_counter] = do_feedback(links,parameters);
 
 tic;
-% [data] = do_transfer_feedback(parameters,links);
-[data] = do_feedback(links,parameters);
+[data] = do_transfer_feedback(parameters,links);
+% [data] = do_feedback(links,parameters);
 toc;
 
 graph_delay_over_time(parameters,data,36,1);

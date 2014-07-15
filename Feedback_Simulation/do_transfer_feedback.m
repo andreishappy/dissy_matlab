@@ -158,7 +158,7 @@ for time_step = 1:parameters.NR_TIME_STEPS-MESSAGE_DELAY
 for nodeIndex = 1:parameters.NR_NODES
    if time_step > 1 && ...
       new_messages(data(nodeIndex).data(:,time_step), data(nodeIndex).data(:,time_step-1),nodeIndex, parameters.NR_NODES)
-       fprintf('TIME: %d NODE: %d NEW MESSAGE\n', time_step, nodeIndex);
+%        fprintf('TIME: %d NODE: %d NEW MESSAGE\n', time_step, nodeIndex);
        %data(nodeIndex).data(:,time_step)
        %data(nodeIndex).data(:,time_step-1)
        
