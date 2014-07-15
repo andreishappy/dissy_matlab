@@ -1,0 +1,12 @@
+function [ output ] = find_feedback_line( delays, percentage_below )
+%FIND_FEEDBACK_LINE: FINDS THE Y VALUE OF THE LINE UNDER WHICH
+% percentage_below PERCENT OF THE DATA POINTS LIE
+
+for value = min(delays):0.1:100
+    under
+end
+
+
+
+end
+
