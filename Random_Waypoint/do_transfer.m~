@@ -1,0 +1,57 @@
+function rer = do_transfer(s_mobility,s_input,vs_node)
+   
+
+counter = 0;
+   
+   
+   %ALL SYNCHS HAPPEN AT THE SAME TIME - UNREALISTIC!!!!
+   for time_step = 1:length(vs_node(1).v_x);       
+       
+        for nodeIndex = 1:s_mobility.NB_NODES 
+    
+         %remember all the past data
+         if time_step > 1
+            vs_node(nodeIndex).data(time_step,:) = vs_node(nodeIndex).data(time_step-1,:);
+         end
+         
+        end
+       
+       %Send the data to one random neighbour
+       if counter == 0
+          for nodeIndex = 1:s_mobility.NB_NODES
+       
+         
+             %send data the local monitor produces
+             link_to_pick = randperm(length(vs_node(nodeIndex).links{time_step}));
+             if numel(link_to_pick) > 0
+                link_to_pick = link_to_pick(1);
+                destination_id = vs_node(nodeIndex).links{time_step}(link_to_pick);
+                vs_node(destination_id).data(time_step,nodeIndex) = time_step;
+                fprintf('TIME %d: MADE AN ORIGINAL TRANSFER FROM %d TO %d\n',...
+                     time_step,nodeIndex,destination_id)
+             
+                %send data that I have from others
+                for index = 1:s_input.NB_NODES
+                   if vs_node(destination_id).data(time_step,index) < ...
+                      vs_node(nodeIndex).data(time_step,index)
+                   
+                      vs_node(destination_id).data(time_step,index) = ...
+                      vs_node(nodeIndex).data(time_step,index);
+                      fprintf('TIME %d: FORWARD FROM %d TO %d\n',...
+                     time_step,nodeIndex,destination_id)
+                   end
+                end
+             end
+          end
+          counter = s_input.GLOBAL_FREQUENCY;
+       end
+       counter = counter -1;
+   end
+   
+   
+%DO_TRANSFER Summary of this function goes here
+%   Detailed explanation goes here
+   rer = vs_node;
+
+end
+

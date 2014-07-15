@@ -1,0 +1,9 @@
+function [ output_args ] = delay_over_time( s_input, data, consumer, producer )
+
+    last_synch = data(consumer).data(:,producer);
+    current_time = 0:length(last_synch)-1;
+    
+    delay = current_time - last_synch;
+    plot(delay);
+end
+

@@ -1,0 +1,13 @@
+function [ output ] = find_average_delays( s_input, link_output)
+%FIND_AVERAGE_DELAYS Summary of this function goes here
+%   Detailed explanation goes here
+   output = []
+ 
+   for i = [2,10,50,100]
+       
+      data = do_transfer_new(s_input,link_output);
+      output = [output,find_average_delay(data)]
+      disp('1
+   end
+end
+

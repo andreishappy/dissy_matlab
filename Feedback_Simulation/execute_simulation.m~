@@ -1,0 +1,23 @@
+clear all;clc;close all;
+
+
+
+parameters = struct;
+parameters.SIMULATION_DURATION = 400; % in seconds
+parameters.TIME_STEP = .5;
+parameters.NR_TIME_STEPS = parameters.SIMULATION_DURATION / ...
+                           parameters.TIME_STEP + 1;
+
+grid_size = 6;                    
+connectivity_threshold = 2;
+links = create_grid_links(grid_size,connectivity_threshold,parameters);
+
+parameters.NR_NODES = grid_size*grid_size;
+parameters.DEFAULT_COUNTER = 20;
+% [control, already_heard, already_heard_counter] = do_feedback(links,parameters);
+
+
+[data] = do_transfer_feedback(parameters,links);
+
+graph_delay_over_time(parameters,data,36,1);
+

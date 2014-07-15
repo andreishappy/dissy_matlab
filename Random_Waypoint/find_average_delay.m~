@@ -1,0 +1,21 @@
+function [ output_args ] = find_average_delay( s_input,link_output,data )
+%FIND_AVERAGE_DELAY Summary of this function goes here
+%   Detailed explanation goes here
+   number_time_steps = size(data(1).data,1);
+   
+   all_node_averages = zeros(1,s_input.NB_NODES);
+   
+   for nodeIndex= 1:s_input.NB_NODES
+      average_for_destination = zeros(1,s_input.NB_NODES);
+      
+      
+      
+       
+       
+       
+   end
+
+
+
+end
+

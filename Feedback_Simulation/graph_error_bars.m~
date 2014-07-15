@@ -1,0 +1,6 @@
+function [ ] = graph_error_bars( data, parameters )
+
+    
+
+end
+
