@@ -1,21 +1,25 @@
-function [ output ] = find_decision_lines( delays, requirement_list )
+function [ output ] = find_decision_lines( nodeIndex, delays, requirement_list )
 
-output = zeros(length(requirement_list),1); 
+    output = zeros(1,length(requirement_list));
 
-for producerID = 1:length(requirement_list)
-   output(producerID) = find_feedback_line (delays(producerID,:), requirement_list(producerID);
-end
+    for producerID = 1:length(requirement_list)
+        output(producerID) = find_feedback_line (delays(producerID,:), requirement_list(producerID));
+    end
 
-end
+    end
 
 function [ output ] = find_feedback_line( delays, percentage_below )
 %FIND_FEEDBACK_LINE: FINDS THE Y VALUE OF THE LINE UNDER WHICH
 % percentage_below PERCENT OF THE DATA POINTS LIE
+if percentage_below == 100
+   output = max(delays); 
+   return
+end
 
 number_under = 0;
-for value = min(delays):0.1:100
+for value = min(delays):0.1:max(delays)
     for i = 1:length(delays)
-        if delays(i) < value
+        if delays(i) <= value
            number_under = number_under + 1;
         end
     end

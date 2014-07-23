@@ -1,0 +1,308 @@
+function [ data ] = do_ant( s_input, s_mobility, link_output )
+%DO_ANT Summary of this function goes here
+%   Detailed explanation goes here
+all_nodes = 1:s_input.NB_NODES;
+
+
+global ANT_BUFFER_SIZE; ANT_BUFFER_SIZE = 100;
+ANT_SYNCH_TIME = 1.5;
+ANT_COUNTER = ANT_SYNCH_TIME / s_input.TIME_STEP;
+assert(mod(ANT_COUNTER,1)==0, 'ANT COUNTER is not an integer');
+
+global CONSUMER_ID; CONSUMER_ID = 1;
+global PRODUCER_ID; PRODUCER_ID = 2;
+global ANT_BANT; ANT_BANT = 3;
+global SEQ_NR; SEQ_NR = 4;
+global NR_HOPS; NR_HOPS = 5;
+global DISTANCE; DISTANCE = 6;
+
+TRANSMISSION_PROBABILITY = .9;
+
+
+data = repmat(struct,s_input.NB_NODES,1);
+
+
+for nodeIndex = all_nodes
+   data(nodeIndex).ants = zeros(ANT_BUFFER_SIZE,6,s_input.NR_TIME_STEPS); 
+   data(nodeIndex).ants_counter = zeros(s_input.NR_TIME_STEPS,1);
+   data(nodeIndex).usefulness = zeros(s_input.NR_TIME_STEPS,1);
+   data(nodeIndex).distance = zeros(s_input.NR_TIME_STEPS,1);
+   
+   data(nodeIndex).synch_counter = ANT_COUNTER;
+   data(nodeIndex).new_ants = zeros(s_input.NR_TIME_STEPS,ANT_BUFFER_SIZE);
+   data(nodeIndex).seq_nr = 1;
+      
+end
+
+data(51).ants_counter(1) = 1;
+data(51).ants(1,:,1) = [51,52,1,1,0,0];
+data(51).seq_nr = 2;
+no_new_ants = zeros(1,ANT_BUFFER_SIZE);
+
+
+for time_step = 1:s_input.NR_TIME_STEPS-1
+
+    % set distance from local ants and bants (latest one of the two)
+    for nodeIndex = all_nodes
+        % find latest ant and bant
+        latest_bant_index = 0;
+        latest_ant_index = 0;
+        latest_bant_seq_nr = 0;
+        latest_ant_seq_nr = 0;
+
+        for ant_index = 1:data(nodeIndex).ants_counter(time_step)
+            % ant
+            if data(nodeIndex).ants(ant_index,ANT_BANT,time_step) == 1 && ...
+               data(nodeIndex).ants(ant_index,SEQ_NR,time_step) > latest_ant_seq_nr
+
+               latest_ant_index = ant_index;
+               latest_ant_seq_nr = data(nodeIndex).ants(ant_index,SEQ_NR,time_step);
+
+            end
+
+            % bant
+            if data(nodeIndex).ants(ant_index,ANT_BANT,time_step) == 2 && ...
+               data(nodeIndex).ants(ant_index,SEQ_NR,time_step) > latest_bant_seq_nr
+
+               latest_bant_index = ant_index;
+               latest_bant_seq_nr = data(nodeIndex).ants(ant_index,SEQ_NR,time_step);
+
+            end
+
+        end
+
+
+        if latest_ant_seq_nr ~= 0 && latest_bant_seq_nr ~= 0 
+           if latest_ant_seq_nr > latest_bant_seq_nr
+              %take ant distance
+              data(nodeIndex).distance(time_step) = data(nodeIndex).ants(latest_ant_index,DISTANCE,time_step);
+           else
+              %take bant distance
+              data(nodeIndex).distance(time_step) = data(nodeIndex).ants(latest_bant_index,DISTANCE,time_step); 
+           end
+           
+           if data(nodeIndex).distance(time_step) ~= 0
+           data(nodeIndex).usefulness(time_step) = ( data(nodeIndex).ants(latest_bant_index, NR_HOPS, time_step) + ...
+                                                     data(nodeIndex).ants(latest_ant_index , NR_HOPS, time_step) ) / ...
+                                                     data(nodeIndex).distance(time_step);
+           end
+           
+
+        end
+    
+    end
+    
+    
+    
+    
+    % use local ants and bants to calculate usefulness
+    
+    %    - latest BANT + LATEST FANT / TOTAL DISTANCE
+    
+    
+    % WHEN RECEIVING AN ANT/BANT, SEND A BANT/ANT WITH THE TOTAL DISTANCE IN IT
+    for nodeIndex = all_nodes
+       if not(isequal(data(nodeIndex).new_ants(time_step,:), no_new_ants))
+          %fprintf('TIME: %d NODE: %d A NEW ANT\n',time_step,nodeIndex);
+          for i = 1:ANT_BUFFER_SIZE
+             if data(nodeIndex).new_ants(time_step,i) == 1 
+ 
+                if is_ant_that_ends_here(data(nodeIndex).ants(i,:,time_step),nodeIndex)
+                fprintf('TIME: %d NODE: %d FOUND ANT FOR ME SEQ_NR %d\n',time_step,nodeIndex, data(nodeIndex).ants(i,SEQ_NR,time_step));
+                %Generate bant
+                data(nodeIndex).ants_counter(time_step) = increment_cyclical_counter(data(nodeIndex).ants_counter(time_step),ANT_BUFFER_SIZE);
+                generate_bant_out_of_ant(data(nodeIndex).ants(i,:,time_step))
+                data(nodeIndex).ants(data(nodeIndex).ants_counter(time_step),:,time_step) = generate_bant_out_of_ant(data(nodeIndex).ants(i,:,time_step));
+                
+                % Add other conditions here for bant to ant
+                elseif is_bant_that_ends_here(data(nodeIndex).ants(i,:,time_step),nodeIndex)
+                fprintf('TIME: %d NODE: %d FOUND BANT FOR ME SEQ_NR %d\n',time_step,nodeIndex, data(nodeIndex).ants(i,SEQ_NR,time_step));    
+                %Generate ant
+                data(nodeIndex).ants_counter(time_step) = increment_cyclical_counter(data(nodeIndex).ants_counter(time_step),ANT_BUFFER_SIZE);
+                data(nodeIndex).seq_nr = data(nodeIndex).seq_nr + 1;
+                generate_ant_out_of_bant(data(nodeIndex).ants(i,:,time_step),data(nodeIndex).seq_nr)
+                data(nodeIndex).ants(data(nodeIndex).ants_counter(time_step),:,time_step) = generate_ant_out_of_bant(data(nodeIndex).ants(i,:,time_step),data(nodeIndex).seq_nr);
+
+                end
+                %reset the new_ants flag
+                data(nodeIndex).new_ants(time_step, i) = 0;                
+             end
+              
+          end
+       end
+        
+    end
+
+
+    % REMEMBER PAST ANTS
+    for nodeIndex = all_nodes
+       data(nodeIndex).ants(:,:,time_step + 1) = data(nodeIndex).ants(:,:,time_step);
+       data(nodeIndex).ants_counter(time_step + 1) = data(nodeIndex).ants_counter(time_step);
+    end
+    
+    
+    
+    %pass on the local ants
+    
+    % if an ant/bant with the same seq nr already seen => don't transfer
+    
+    % if an ant/bant with a higher seq nr => don't transfer
+    
+    for nodeIndex = all_nodes
+        if data(nodeIndex).synch_counter == 0
+
+            for destination = all_nodes
+                if link_output(nodeIndex).links(time_step,destination) == 1
+                    if rand > TRANSMISSION_PROBABILITY
+%                         if time_step < 50 
+%                             fprintf('TIME %d NODE: %d -> %d FAILED!!\n',time_step,nodeIndex,destination);
+%                         end
+                    else
+                
+                        for ant_index = 1:data(nodeIndex).ants_counter(time_step) 
+                          if not_present(data(nodeIndex).ants(ant_index,:,time_step),...
+                                        data(destination).ants(:,:,time_step+1),data(destination).ants_counter(time_step+1))
+%                             fprintf('TIME: %d NODE: %d -> %d: SUCCESS!!\n',time_step,nodeIndex, destination);
+                            data(destination).ants_counter(time_step+1) = increment_cyclical_counter(data(destination).ants_counter(time_step+1),ANT_BUFFER_SIZE);
+                            data(destination).ants(data(destination).ants_counter(time_step+1),:,time_step+1) = add_one_hop(data(nodeIndex).ants(ant_index,:,time_step));
+                            data(destination).new_ants(time_step+1,data(destination).ants_counter(time_step+1)) = 1;
+                          end
+                        end
+                    end
+                end   
+            end
+
+            
+        data(nodeIndex).synch_counter = ANT_COUNTER;
+        else
+        data(nodeIndex).synch_counter = data(nodeIndex).synch_counter - 1; 
+        end
+    end
+    
+    
+    
+    
+    
+    
+
+
+end
+end
+
+
+function [ answer ] = is_bant_that_ends_here(ant,consumer_id)
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE; 
+
+if ant(ANT_BANT) == 2 && ant(CONSUMER_ID) == consumer_id
+    answer = 1;
+else
+    answer = 0;
+end
+
+
+end
+
+function output_ant = generate_ant_out_of_bant(bant,seq_nr) 
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE; 
+
+output_ant = [bant(CONSUMER_ID),bant(PRODUCER_ID),1,seq_nr,0,bant(NR_HOPS)];
+
+end
+
+function [ answer ] = is_ant_that_ends_here(ant,producer_id)
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE; 
+
+if ant(ANT_BANT) == 1 && ant(PRODUCER_ID) == producer_id
+    answer = 1;
+else
+    answer = 0;
+end
+
+
+end
+
+function output_bant = generate_bant_out_of_ant(ant) 
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE; 
+
+output_bant = [ant(CONSUMER_ID),ant(PRODUCER_ID),2,ant(SEQ_NR),0,ant(NR_HOPS)];
+
+end
+
+
+
+function [ output_ant ] = add_one_hop(input_ant)
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE;
+
+output_ant = [ input_ant(CONSUMER_ID), input_ant(PRODUCER_ID), input_ant(ANT_BANT),...
+               input_ant(SEQ_NR), input_ant(NR_HOPS) + 1, input_ant(DISTANCE) ];
+
+
+end 
+
+
+
+
+
+
+function [ answer ] = not_present (ant_to_find, all_ants, ants_counter)
+global CONSUMER_ID;
+global PRODUCER_ID;
+global ANT_BANT;
+global SEQ_NR; 
+global NR_HOPS; 
+global DISTANCE; 
+global ANT_BUFFER_SIZE;
+
+answer = 1;
+
+for index = 1:ants_counter
+    if ant_to_find(CONSUMER_ID) == all_ants(index,CONSUMER_ID) && ...
+       ant_to_find(PRODUCER_ID) == all_ants(index,PRODUCER_ID) && ...     
+       ant_to_find(SEQ_NR) == all_ants(index,SEQ_NR) && ...
+       ant_to_find(ANT_BANT) == all_ants(index,ANT_BANT)
+       answer = 0;
+       return
+   
+    end
+end
+
+end
+
+
+
+function [new_counter] = increment_cyclical_counter(counter,limit)
+    new_counter = counter + 1;
+    if new_counter > limit
+       new_counter = 1;
+    end
+end

@@ -1,0 +1,29 @@
+function [ ] = graph_delay_over_time_multiple( parameters, data, destinations, sources )
+
+assert(length(destinations) == length(sources), 'Destinations and sources lengths have to be the same');
+assert(length(destination) <= 4, 'Function only built for displaying 4 graphs');
+
+
+current_time = 1:parameters.NR_TIME_STEPS;
+
+
+for i = 1:length(destinations)
+   consumer = destinations(i);
+   producer = sources(i);
+   
+   actual_time = data(consumer).data(producer,:)
+   delay = (current_time - acual_time) * parameters.TIME_STEP;
+   
+   subplot(2,2,i);
+   plot(cur
+   
+end
+
+actual_time = data(destination).data(source,:);
+
+
+
+
+
+end
+

@@ -3,7 +3,7 @@ clear all;clc;close all;
 
 
 parameters = struct;
-parameters.SIMULATION_DURATION = 30; % in seconds
+parameters.SIMULATION_DURATION = 300; % in seconds
 parameters.TIME_STEP = .05;
 parameters.NR_TIME_STEPS = parameters.SIMULATION_DURATION / ...
                            parameters.TIME_STEP + 1;
@@ -17,9 +17,10 @@ parameters.DEFAULT_COUNTER = 20;
 % [control, already_heard, already_heard_counter] = do_feedback(links,parameters);
 
 tic;
+
 [data] = do_transfer_feedback(parameters,links);
 % [data] = do_feedback(links,parameters);
 toc;
 
-graph_delay_over_time(parameters,data,36,1);
+graph_delay_over_time_multiple(parameters,data,[2,26],[4,28]);
 
